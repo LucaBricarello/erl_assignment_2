@@ -13,6 +13,9 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
 
+        # Installa i file PDDL
+        (os.path.join('share', package_name, 'pddl'), glob('pddl/*.pddl')),
+
         # Installa i file di launch
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
         
@@ -40,10 +43,10 @@ setup(
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [
-            'mission_node = erl_assignment_2.mission:main',
-            'mission_node_short = erl_assignment_2.mission_short:main',
-            'mission_node_real = erl_assignment_2.mission_real:main',
-        ],
-    },
+    'console_scripts': [
+        'action_move = erl_assignment_2.action_move:main',
+        'action_rotate = erl_assignment_2.action_rotate:main',
+        'action_analyze = erl_assignment_2.action_analyze:main',
+    ],
+},
 )
