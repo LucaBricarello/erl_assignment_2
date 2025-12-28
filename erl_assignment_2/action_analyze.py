@@ -17,10 +17,14 @@ class AnalyzeAction(ActionExecutorClient):
         self.latest_image = None
 
     def image_callback(self, msg):
+        """
+        Callback executed every time a frame arrives from the camera.
+        It ONLY converts the image and saves it in self.latest_image.
+        """
         try:
             self.latest_image = self.bridge.compressed_imgmsg_to_cv2(msg, "bgr8")
-        except Exception:
-            pass
+        except Exception as e:
+            self.get_logger().error(f'Error converting image: {e}')
 
     def do_work(self):
         if self.latest_image is None:
