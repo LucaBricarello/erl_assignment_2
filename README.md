@@ -21,4 +21,4 @@ all move actions work (note, using the filtered odometry of the ekf node, normal
 
 all rotate and detect actions work, they pubblish the detected id on a topic so that the analyze marker action can retrieve the markers id
 
-analyze marker action for now not working
+analyze marker action almost working, needs parameter fine tuning
