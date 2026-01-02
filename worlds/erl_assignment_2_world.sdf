@@ -177,7 +177,7 @@
 
 
     <model name='aruco_box'>
-      <pose>-8.13393 8.96476 0.25 0 0 -0.70923</pose>
+      <pose>-7.7830886840820295 8.43450927734375 0.2499990115783875 1.2456789775088167e-19 -3.4575741573092076e-19 -0.98626797183812853</pose>
       <link name='link'>
         <collision name='collision'>
           <geometry><box><size>0.5 0.5 0.5</size></box></geometry>

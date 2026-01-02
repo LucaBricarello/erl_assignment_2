@@ -40,7 +40,7 @@ def generate_launch_description():
     )
 
     y_arg = DeclareLaunchArgument(
-        'y', default_value='0.0',
+        'y', default_value='-0.5',
         description='y coordinate of spawned robot'
     )
 
@@ -129,7 +129,7 @@ def generate_launch_description():
         output="screen",
         parameters=[
             {'use_sim_time': LaunchConfiguration('use_sim_time'),
-            'camera.image.compressed.jpeg_quality': 75},
+            'camera.image.compressed.jpeg_quality': 90},
         ],
     )
 

@@ -47,7 +47,6 @@ setup(
         'action_move = erl_assignment_2.action_move:main',
         'action_rotate = erl_assignment_2.action_rotate:main',
         'action_analyze = erl_assignment_2.action_analyze:main',
-        'get_plan_and_execute = erl_assignment_2.get_plan_and_execute:main',
     ],
 },
 )

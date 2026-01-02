@@ -247,9 +247,10 @@ class AnalyzeAction(ActionExecutorClient):
 
                 # Detect markers
                 corners, ids, _ = cv2.aruco.detectMarkers(img_gray, self.aruco_dict, parameters=self.aruco_params)
+                self.get_logger().info(f"Analyzed Marker {target_id} successfully.")
                 
                 if ids is not None and len(ids) > 0 and target_id in ids:
-                    self.get_logger().info(f"Analyzed Marker {target_id} successfully.")
+                    self.get_logger().info(f"ids recognized: {ids}")
 
                     #QUA LOGICA DI ALLINEAMENTO E DISEGNO CERCHIO E PUBBLICAZIONE IMG
 
@@ -279,7 +280,7 @@ class AnalyzeAction(ActionExecutorClient):
                     is_close = False
 
                     # error_x is computed as an average in pixels so it will have values multiples of 0.25
-                    if abs(error_x) < 8:
+                    if abs(error_x) < 10:
                         is_alligned = True
 
                     # marker_perceived_width is in pixels, so we set a threshold in pixels too (1 TO NOT GET ANY CLOSER)
