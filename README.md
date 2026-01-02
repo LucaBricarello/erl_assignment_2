@@ -32,22 +32,21 @@ Once you have correctly built and sourced your workspace, you can procede with t
 
 ### 2. Run Plansys nodes
 You can launch the domain expert, the problem expert, the planner and the executor thanks to a launc file, the command is:
-	```
-  ros2 launch erl_assignment_2 distributed_actions_2.launch.py
-	```
+```
+ros2 launch erl_assignment_2 distributed_actions_2.launch.py
+```
 ### 3. Choose a Mission and launch the simulator
 You can run the simulation with either a **2-wheel robot** or a **4-wheel (skid steer) robot**.
 You can launch the simulator with the **2-wheel robot** with this launch file:
-	```
-  ros2 launch erl_assignment_2 spawn_robot.launch.py
-	```
+```
+ros2 launch erl_assignment_2 spawn_robot.launch.py
+```
 Or you can launch the simulator with the *4-wheel (skid steer) robot** with this other launch file
-	```
-  ros2 launch erl_assignment_2 spawn_robot_skid_steer.launch.py
-	```
+```
+ros2 launch erl_assignment_2 spawn_robot_skid_steer.launch.py
+```
 ### 4. Launch the mission, retrieve the plan and execute it:
 Now you can launch the node get_plan_and_execute of the plansys_interface pkg to get the plan and execute it:
-- **Long Mission (2-Wheel Robot)**:
 ```
 ros2 run plansys_interface get_plan_and_execute
 ```
@@ -108,9 +107,3 @@ An obstacle avoidance algorithm has been develeped to move in the enviroment wit
 # Development status
 
 correct comments
-
-all move actions work (note, using the filtered odometry of the ekf node, normal odometry diverges to fast)
-
-all rotate and detect actions work, they pubblish the detected id on a topic so that the analyze marker action can retrieve the markers id
-
-analyze marker action almost working, needs parameter fine tuning
