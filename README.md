@@ -102,9 +102,3 @@ The `pddl/` folder contains the pddl files needed for the planning of the missio
 ### Obstacle avoidance
 An obstacle avoidance algorithm has been develeped to move in the enviroment without colliding into the walls. This obstacle avoidance algorithm is an Artificial Potential Field that works thanks to the subscription to the scan topic (lidar sensor). Pay attention, this algorithm could stuck the robot into a local minimum (the implemented version for now does not include noise to try to avois this problem).
 
-# Development status
-to be done:
-
-correct comments
-
-add video
