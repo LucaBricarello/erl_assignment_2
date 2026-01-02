@@ -25,7 +25,7 @@ class AnalyzeAction(ActionExecutorClient):
 
         self.marker_sub = self.create_subscription(Int32, '/aruco/marker_id', self.marker_id_callback, 10)
         
-        # Posizione corrente
+        # Current position and orientation
         self.current_x = 0.0
         self.current_y = 0.0
         self.current_yaw = 0.0
@@ -38,17 +38,17 @@ class AnalyzeAction(ActionExecutorClient):
 
         self.scan_data = None
 
-        # --- VARIABILI PID ---
-        self.prev_error_x = 0.0     # Per il termine Derivativo
-        self.integral_error_x = 0.0 # Per il termine Integrale
-        
-        # Guadagni PID (Tarabili)
-        self.kp = 0.001   # Proporzionale (era 0.001, alzato leggermente)
-        self.ki = 0.000005 # Integrale (molto basso, corregge errore a regime)
-        self.kd = 0.00005   # Derivativo (smorza le oscillazioni)
+        # --- PID VARIABLES ---
+        self.prev_error_x = 0.0     # Derivative term
+        self.integral_error_x = 0.0 # Integral term
+
+        # PID gains
+        self.kp = 0.001   # Proportional
+        self.ki = 0.000005 # Integral
+        self.kd = 0.00005   # Derivative
         # ---------------------
 
-        # Mappa dei waypoint (Hardcoded per semplicità, o caricabile da params)
+        # waypoints map
         self.waypoints = {
             "wp1": [-6.0, -6.0],
             "wp2": [-6.0, 6.0],
@@ -61,21 +61,16 @@ class AnalyzeAction(ActionExecutorClient):
         self.latest_image = None
 
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_ARUCO_ORIGINAL)
-        self.aruco_params = cv2.aruco.DetectorParameters_create() # O DetectorParameters_create() su vecchie versioni opencv
+        self.aruco_params = cv2.aruco.DetectorParameters_create()
 
-        # Gestione Missione Analyze
-        self.collected_ids = []      # Lista degli ID ricevuti
-        self.sorted_ids = []         # Lista ordinata da visitare
-        self.current_target_idx = 0  # Indice del marker corrente nella lista ordinata
-        self.is_list_sorted = False  # Flag per ordinamento
-        self.navigating_to_target = False # Flag stato navigazione
+        # Analyze Mission Management
+        self.collected_ids = []      # List of received IDs
+        self.sorted_ids = []         # Sorted list to visit
+        self.current_target_idx = 0  # Index of the current marker in the sorted list
+        self.is_list_sorted = False  # Sorting flag
+        self.navigating_to_target = False # Navigation state flag
         
-        # Mappa ID -> Waypoint (Da popolare dinamicamente o staticamente se noto)
-        # Nota: Se il robot trova ID=12 mentre è al WP1, dovresti salvare questa associazione.
-        # Per ora, assumiamo che tu voglia solo visitare gli ID. Ma DOVE sono?
-        # Se non salviamo la posizione QUANDO li troviamo, non sappiamo dove tornare.
-        # SOLUZIONE PROVVISORIA: Supponiamo che gli ID siano associati ai WP in ordine di scoperta
-        # o che tu abbia una logica per dedurre la posizione.
+        # ID -> Waypoint Map (To be populated dynamically)
         self.id_to_waypoint_map = {}
 
     def odom_callback(self, msg):
@@ -99,21 +94,21 @@ class AnalyzeAction(ActionExecutorClient):
 
     def marker_id_callback(self, msg):
         """
-        Callback che riceve l'ID del marker appena trovato dall'azione Rotate.
-        Salva l'ID e associa la posizione corrente del robot (approssimata al waypoint più vicino).
+        Callback that receives the marker ID just found from the Rotate action.
+        Saves the ID and associates the current robot position (approximated to the nearest waypoint).
         """
         marker_id = msg.data
         if marker_id not in self.collected_ids:
             self.collected_ids.append(marker_id)
             
-            # Trova il waypoint più vicino alla posizione attuale per associarlo all'ID
+            # Find the nearest waypoint to the current position to associate it with the ID
             closest_wp = self.get_closest_waypoint()
             self.id_to_waypoint_map[marker_id] = closest_wp
             
             self.get_logger().info(f"New ID collected: {marker_id} associated with {closest_wp}")
 
     def get_closest_waypoint(self):
-        """Trova il nome del waypoint più vicino alla posizione attuale."""
+        """Find the name of the nearest waypoint to the current position."""
         min_dist = float('inf')
         closest = None
         for name, coords in self.waypoints.items():
@@ -125,8 +120,8 @@ class AnalyzeAction(ActionExecutorClient):
 
     def get_repulsive_force(self):
         """
-        Calcola un vettore repulsivo basato sugli ostacoli vicini.
-        Ritorna (force_x, force_y) nel frame del robot.
+        Calculate a repulsive vector based on nearby obstacles.
+        Returns (force_x, force_y) in the robot's frame.
         """
         if self.scan_data is None:
             return 0.0, 0.0
@@ -134,19 +129,16 @@ class AnalyzeAction(ActionExecutorClient):
         rep_x = 0.0
         rep_y = 0.0
         
-        # Parametri APF
-        detection_distance = 1.0 # Considera ostacoli solo entro 1 metro
-        gain = 0.002 # Quanto forte è la repulsione
+        # APF Parameters
+        detection_distance = 1.0 # Consider obstacles only within 1 meter
+        gain = 0.002 # How strong the repulsion is
 
         angle = self.scan_data.angle_min
         for r in self.scan_data.ranges:
-            if r < detection_distance and r > 0.1: # Ignora valori infiniti o troppo piccoli
-                # La forza è inversamente proporzionale alla distanza
+            if r < detection_distance and r > 0.1: # Ignore infinite or too small values
+                # The force is inversely proportional to the distance
                 force = gain / (r * r)
                 
-                # Il vettore ostacolo punta VERSO l'ostacolo.
-                # Noi vogliamo andare nel verso OPPOSTO, quindi usiamo -cos e -sin.
-                # Nota: stiamo sommando vettori nel frame locale del robot
                 rep_x -= force * math.cos(angle)
                 rep_y -= force * math.sin(angle)
             
@@ -167,8 +159,8 @@ class AnalyzeAction(ActionExecutorClient):
 
     def navigate_to_coords(self, target_x, target_y):
         """
-        Funzione helper per muovere il robot verso coordinate X,Y.
-        Ritorna True se arrivato, False altrimenti.
+        Helper function to move the robot towards X,Y coordinates.
+        Returns True if arrived, False otherwise.
         """
         dx = target_x - self.current_x
         dy = target_y - self.current_y
@@ -191,7 +183,7 @@ class AnalyzeAction(ActionExecutorClient):
 
         msg = Twist()
         
-        if dist_error < 0.2: # Tolleranza arrivo
+        if dist_error < 0.2: # Arrival tolerance
             self.cmd_pub.publish(Twist()) # Stop
             return True 
         
@@ -206,12 +198,8 @@ class AnalyzeAction(ActionExecutorClient):
         return False
 
     def do_work(self):
-        
-        #if len(self.collected_ids) < 4: 
-        #    self.get_logger().info(f"Waiting for markers... Found {len(self.collected_ids)}/4", throttle_duration_sec=2)
-        #    return 
 
-        # Ordinamento (fatto una sola volta)
+        # Sorting (done only once)
         if not self.is_list_sorted:
             self.sorted_ids = sorted(self.collected_ids)
             self.get_logger().info(f"All markers found! Visit order: {self.sorted_ids}")
@@ -219,11 +207,11 @@ class AnalyzeAction(ActionExecutorClient):
             self.current_target_idx = 0
             #self.navigating_to_target = True
 
-        # Ciclo di visita
+        # Visit loop
         if self.current_target_idx < len(self.sorted_ids):
             target_id = self.sorted_ids[self.current_target_idx]
             
-            # Recupera dove si trova questo ID
+            # Retrieve where this ID is located
             target_wp_name = self.id_to_waypoint_map.get(target_id)
             if not target_wp_name:
                 self.get_logger().error(f"Lost location for ID {target_id}!")
@@ -234,13 +222,12 @@ class AnalyzeAction(ActionExecutorClient):
 
             self.get_logger().info(f"Visiting Marker {target_id} at {target_wp_name}...", throttle_duration_sec=2)
             
-            # Naviga verso il waypoint associato al marker
+            # Navigate to the waypoint associated with the marker
             if self.arrived != 1:
                 self.arrived = self.navigate_to_coords(target_coords[0], target_coords[1])
             
             if self.arrived:
                 self.get_logger().info(f"Arrived at Marker {target_id}.")
-                # Qui in futuro aggiungeremo la logica "analizza, cerchia, scatta foto"
                 
                 # Convert latest image to grayscale
                 img_gray = cv2.cvtColor(self.latest_image, cv2.COLOR_BGR2GRAY)
@@ -252,8 +239,6 @@ class AnalyzeAction(ActionExecutorClient):
                 if ids is not None and len(ids) > 0 and target_id in ids:
                     self.get_logger().info(f"ids recognized: {ids}")
 
-                    #QUA LOGICA DI ALLINEAMENTO E DISEGNO CERCHIO E PUBBLICAZIONE IMG
-
                     target_corners = None
 
                     if ids is not None:
@@ -262,7 +247,7 @@ class AnalyzeAction(ActionExecutorClient):
                                 target_corners = corners[i][0]
                                 break
 
-                    # target_corners[i][j] where i is the choosen corner and j is the choosen axis
+                    # target_corners[i][j] where i is the chosen corner and j is the chosen axis
                     marker_center_x = (target_corners[0][0] + target_corners[1][0] + target_corners[2][0] + target_corners[3][0]) / 4
                     marker_center_y = (target_corners[0][1] + target_corners[1][1] + target_corners[2][1] + target_corners[3][1]) / 4
 
@@ -272,7 +257,7 @@ class AnalyzeAction(ActionExecutorClient):
                     error_x = image_center_x - marker_center_x
                     self.get_logger().info(f"error_x: {error_x}.")
 
-                    # computing marker_perceived_width as difference between corner 0 (high left corner) and corner 1 (high right corner) then doing norm
+                    # computing marker_perceived_width as difference between corner 0 (top left corner) and corner 1 (top right corner) then doing norm
                     marker_perceived_width = np.linalg.norm(target_corners[0] - target_corners[1])
                     self.get_logger().info(f"marker_perceived_width: {marker_perceived_width}.")
 
@@ -287,8 +272,6 @@ class AnalyzeAction(ActionExecutorClient):
                     if abs(marker_perceived_width) > 1:
                         is_close = True
 
-                    #k_p = 0.001
-
                     msg = Twist()
 
                     if is_alligned == False:
@@ -298,25 +281,24 @@ class AnalyzeAction(ActionExecutorClient):
                         msg.linear.z = 0.0
                         msg.angular.x = 0.0
                         msg.angular.y = 0.0
-                        #msg.angular.z = k_p * error_x
 
-                        # --- CALCOLO PID ---
-                        dt = 0.1 # Tempo ciclo dell'azione (definito in __init__)
+                        # --- PID CALCULATION ---
+                        dt = 0.1 # Action cycle time
 
-                        # Proporzionale
+                        # Proportional
                         P = self.kp * error_x
 
-                        # Integrale (Accumulo errore)
+                        # Integral
                         self.integral_error_x += error_x * dt
-                        # Clamp per evitare windup eccessivo (opzionale ma consigliato)
+                        # Clamp
                         self.integral_error_x = max(min(self.integral_error_x, 10000), -10000) 
                         I = self.ki * self.integral_error_x
 
-                        # Derivativo (Variazione errore)
+                        # Derivative
                         D = self.kd * (error_x - self.prev_error_x) / dt
-                        self.prev_error_x = error_x # Aggiorno per il prossimo ciclo
+                        self.prev_error_x = error_x # Update for next cycle
 
-                        # Output PID
+                        # PID Output
                         angular_z_output = P + I + D
                         # -------------------
 
@@ -335,25 +317,24 @@ class AnalyzeAction(ActionExecutorClient):
                         msg.linear.z = 0.0
                         msg.angular.x = 0.0
                         msg.angular.y = 0.0
-                        #msg.angular.z = k_p * error_x
 
-                        # --- CALCOLO PID ---
-                        dt = 0.1 # Tempo ciclo dell'azione (definito in __init__)
+                        # --- PID CALCULATION ---
+                        dt = 0.1 # Action cycle time
 
-                        # Proporzionale
+                        # Proportional
                         P = self.kp * error_x
 
-                        # Integrale (Accumulo errore)
+                        # Integral
                         self.integral_error_x += error_x * dt
-                        # Clamp per evitare windup eccessivo (opzionale ma consigliato)
+                        # Clamp
                         self.integral_error_x = max(min(self.integral_error_x, 10000), -10000) 
                         I = self.ki * self.integral_error_x
 
-                        # Derivativo (Variazione errore)
+                        # Derivative
                         D = self.kd * (error_x - self.prev_error_x) / dt
-                        self.prev_error_x = error_x # Aggiorno per il prossimo ciclo
+                        self.prev_error_x = error_x # Update for next cycle
 
-                        # Output PID
+                        # PID Output
                         angular_z_output = P + I + D
                         # -------------------
 
@@ -386,26 +367,26 @@ class AnalyzeAction(ActionExecutorClient):
 
                         self.alligning = False
 
-                        # Resetta per il prossimo target
+                        # Reset for next target
                         self.distance_initial_status = 0.0 
-                        self.current_target_idx += 1 # Passa al prossimo
+                        self.current_target_idx += 1 # next target
 
-                        # Feedback di progresso
+                        # Provide feedback
                         self.send_feedback(float(self.current_target_idx)/len(self.sorted_ids), f"Visited {target_id}")
                         self.arrived = 0
 
-                        # Resetta errori PID per il nuovo target
+                        # Reset PID errors for the new target
                         self.prev_error_x = 0.0
                         self.integral_error_x = 0.0
                 else:
-                    # --- NESSUN MARKER ---
+                    # --- NO MARKER FOUND ---
                     if not self.alligning:
                         msg = Twist()
                         msg.angular.z = 0.3
                         self.cmd_pub.publish(msg)
 
         else:
-            # Tutti i marker visitati
+            # All markers visited
             # wait a bit before closing any windows
             cv2.waitKey(3000)
             # close any OpenCV windows

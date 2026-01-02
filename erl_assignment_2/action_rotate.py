@@ -11,17 +11,17 @@ class RotateAction(ActionExecutorClient):
         super().__init__('rotate_and_detect', 0.1)
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.img_sub = self.create_subscription(CompressedImage, '/camera/image/compressed', self.image_callback, 10)
-        # Publisher per l'ID del marker trovato (Richiesto da te)
+        # Publisher for the found marker ID
         self.marker_pub = self.create_publisher(Int32, '/aruco/marker_id', 10)
 
         self.bridge = CvBridge()
         self.latest_image = None
         
-        # Lista per tenere traccia dei marker già trovati
+        # List to keep track of already found markers
         self.found_markers = []
 
         self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_ARUCO_ORIGINAL)
-        self.aruco_params = cv2.aruco.DetectorParameters_create() # O DetectorParameters_create() su vecchie versioni opencv
+        self.aruco_params = cv2.aruco.DetectorParameters_create()
 
     def image_callback(self, msg):
         """
@@ -35,7 +35,7 @@ class RotateAction(ActionExecutorClient):
 
     def do_work(self):
         if self.latest_image is None:
-            return # Aspetta immagine
+            return # Wait for image
 
         self.get_logger().info(f"SEARCH phase", throttle_duration_sec=2)
 
@@ -47,32 +47,32 @@ class RotateAction(ActionExecutorClient):
 
         msg = Twist()
 
-        # Variabile per tracciare se abbiamo trovato un NUOVO marker in questo frame
+        # Variable to track if we have found a NEW marker in this frame
         new_marker_found = False
         found_id = -1
 
         if ids is not None and len(ids) > 0:
-            # Controllo tutti gli ID visibili nel frame (potrebbero essercene più di uno)
+            # Check all IDs visible in the frame
             for i in range(len(ids)):
                 current_id = int(ids[i][0])
                 
-                # <--- CONTROLLO: Se NON è nella lista dei già trovati
+                # CHECK If NOT in the list of already found
                 if current_id not in self.found_markers:
                     found_id = current_id
                     new_marker_found = True
-                    break # Ne abbiamo trovato uno nuovo, usciamo dal ciclo for
+                    break # We have found a new one, exit the for loop
 
-        # Logica di decisione
+        # Decision logic
         if new_marker_found:
-            # --- MARKER NUOVO TROVATO ---
+            # --- NEW MARKER FOUND ---
             
-            # Aggiungo alla lista per non rilevarlo più in futuro
-            self.found_markers.append(found_id) # <--- AGGIUNTO
+            # Add to the list to not detect it again in the future
+            self.found_markers.append(found_id)
             
             # Stop robot
             self.cmd_pub.publish(Twist()) 
             
-            # Pubblico ID
+            # Publish ID
             id_msg = Int32()
             id_msg.data = found_id
             self.marker_pub.publish(id_msg)
@@ -81,8 +81,7 @@ class RotateAction(ActionExecutorClient):
             self.finish(True, 1.0, "Marker Detected")
             
         else:
-            # --- NESSUN MARKER O SOLO MARKER GIÀ VISTI ---
-            # Se vedo un marker vecchio, devo comunque continuare a ruotare per cercarne uno nuovo
+            # --- NO MARKER OR ONLY ALREADY SEEN MARKERS ---
             
             if ids is not None and len(ids) > 0:
                  self.get_logger().info(f"Only old markers detected {ids.flatten()}. Keep searching...", throttle_duration_sec=2)

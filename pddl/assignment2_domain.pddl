@@ -23,7 +23,6 @@
         (wp_detected)
     )
 
-    ;; Azione di movimento: dura 5 secondi
     (:durative-action move
         :parameters (?r - robot ?from - waypoint ?to - waypoint)
         :duration (= ?duration 5)
@@ -36,9 +35,6 @@
         )
     )
 
-    ;; Azione di rotazione: dura 3 secondi
-    ;; Usiamo (over all ...) per costringere il robot a stare fermo al waypoint
-    ;; durante tutta la rotazione
     (:durative-action rotate_and_detect
         :parameters (?r - robot ?w - waypoint)
         :duration (= ?duration 3)
@@ -53,13 +49,11 @@
         )
     )
 
-    ;; Azione di analisi finale: dura 2 secondi
     (:durative-action analyze_marker
         :parameters (?r - robot ?w - waypoint)
         :duration (= ?duration 2)
         :condition (and
             (at start (> (wp_detected) 3.5))
-            ;(at start (forall (?w - waypoint) (marker_detected ?w)))
         )
         :effect (and
             (at end (markers_analyzed))
