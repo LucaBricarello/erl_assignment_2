@@ -33,7 +33,7 @@ Once you have correctly built and sourced your workspace, you can procede with t
 ### 2. Run Plansys nodes
 You can launch the domain expert, the problem expert, the planner and the executor thanks to a launch file, the command is:
 ```
-ros2 launch erl_assignment_2 distributed_actions_2.launch.py
+ros2 launch erl_assignment_2 distributed_actions.launch.py
 ```
 ### 3. Choose a Mission and launch the simulator
 You can run the simulation with either a **2-wheel robot** or a **4-wheel (skid steer) robot**.
@@ -64,7 +64,7 @@ Below you can find demonstrations of the mission running on the simulator.
 
 **mission with 2 wheel robot**:
 
-
+https://github.com/user-attachments/assets/aaf72079-fcda-44d0-8fc7-84eb9105f9e9
 
 ## Package Overview
 This package is made of many different components, each one responsible for a different aspect, like: mission planning, mission execution, robot modeling, simulation setup and system launch orchestration.
