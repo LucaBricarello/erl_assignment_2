@@ -16,7 +16,7 @@ Ensure the following requirements are installed and configured before running th
  - **cv_bridge**
  - **OpenCV (with ArUco module enabled)**: required for ArUco marker detection (`cv2.aruco`)
  - **tf-transformations**: used to convert orientation data from quaternions to Euler angles.
- - **this package:** https://github.com/CarmineD8/plansys_interface.git (used for the get_plan_and_execite node)
+ - **this package:** https://github.com/CarmineD8/plansys_interface.git (used for the get_plan_and_execute node)
 
 ## How to run the code
 ### 1. Installation and Compilation
@@ -100,5 +100,5 @@ The `pddl/` folder contains the pddl files needed for the planning of the missio
 
 ## Other details
 ### Obstacle avoidance
-An obstacle avoidance algorithm has been develeped to move in the enviroment without colliding into the walls. This obstacle avoidance algorithm is an Artificial Potential Field that works thanks to the subscription to the scan topic (lidar sensor). Pay attention, this algorithm could stuck the robot into a local minimum (the implemented version for now does not include noise to try to avois this problem).
+An obstacle avoidance algorithm has been develeped to move in the enviroment without colliding into the walls. This obstacle avoidance algorithm is an Artificial Potential Field that works thanks to the subscription to the scan topic (lidar sensor). Pay attention, this algorithm could stuck the robot into a local minimum (the implemented version for now does not include noise to try to avoid this problem).
 
