@@ -35,7 +35,7 @@ You can launch the domain expert, the problem expert, the planner and the execut
 ```
 ros2 launch erl_assignment_2 distributed_actions.launch.py
 ```
-### 3. Choose a Mission and launch the simulator
+### 3. Launch the simulator with the chosen robot
 You can run the simulation with either a **2-wheel robot** or a **4-wheel (skid steer) robot**.
 
 You can launch the simulator with the **2-wheel robot** with this launch file:
